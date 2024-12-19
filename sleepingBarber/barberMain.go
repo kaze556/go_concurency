@@ -60,13 +60,42 @@ func main() {
 	color.Green("The shop is open for the day!")
 
 	// add barbers
-	shop.addBarber("Frank")
 
+	shop.addBarber("Frank")
+	shop.addBarber("Gerard")
+	shop.addBarber("Mortimer")
+	shop.addBarber("Peter")
+	shopClosing := make(chan bool)
+	closed := make(chan bool)
 	// start the barbershop as a goroutine
+	go func() {
+		<-time.After(timeOpen)
+		shopClosing <- true
+		shop.closeShopForTheDay()
+		closed <- true
+	}()
 
 	// add clients
 
-	// block until the barbershop is closed
+	// random client names array
+	randomClientNames := []string{"John", "Jane", "Jill", "Jerry", "Jim", "Jenny", "Jeff", "Jake", "Jerry", "Jerry"}
 
-	time.Sleep(5 * time.Second)
+	i := 1
+
+	go func() {
+		for {
+			// get a random client
+			randomMilliSeconds := rand.Int() % (2 * arrivalRate)
+			select {
+			case <-shopClosing:
+				return
+			case <-time.After(time.Millisecond * time.Duration(randomMilliSeconds)):
+				shop.addClient(randomClientNames[i%len(randomClientNames)] + " " + string(rune(i)))
+				i++
+			}
+		}
+	}()
+
+	// block until the barbershop is closed
+	<-closed
 }

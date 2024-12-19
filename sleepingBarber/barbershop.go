@@ -1,9 +1,8 @@
 package main
 
 import (
-	"time"
-
 	"github.com/fatih/color"
+	"time"
 )
 
 type BarberShop struct {
@@ -56,4 +55,33 @@ func (shop *BarberShop) cutHair(barber, client string) {
 func (shop *BarberShop) sendBarberHome(barber string) {
 	color.Cyan("%s is going home.", barber)
 	shop.BarbersDoneChan <- true
+}
+
+func (shop *BarberShop) closeShopForTheDay() {
+	color.Red("Closing the shop for the day.")
+	close(shop.ClientsChan)
+	shop.Open = false
+
+	for a := 1; a <= shop.NumberOfBarbers; a++ {
+		<-shop.BarbersDoneChan
+	}
+
+	close(shop.BarbersDoneChan)
+
+	color.Red("------------------------------")
+	color.Red("The shop is closed for the day.")
+}
+
+func (shop *BarberShop) addClient(client string) {
+	color.Green("%s arrives at the shop.", client)
+	if shop.Open {
+		select {
+		case shop.ClientsChan <- client:
+			color.Yellow("%s takes a seat.", client)
+		default:
+			color.Red("%s leaves because the waiting room is full.", client)
+		}
+	} else {
+		color.Red("The shop is closed, so %s is not served.", client)
+	}
 }
